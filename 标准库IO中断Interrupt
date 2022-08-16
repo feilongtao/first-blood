@@ -1,0 +1,43 @@
+#include "stm32f10x.h"
+#include "bsp_exti.h"
+static void EXTI_NVIC_Config(void)
+{
+	//看misc.h
+	NVIC_InitTypeDef  NVIC_InitStruct;
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);//先配置中断优先级，4位共16个可能，分组来表达主次中断优先级
+  //如组0，无主中断优先级，次优先级有4个位16种可能，组1，有一个主优先级1位在0到1里2中可能，此用一个中断选组1
+	//然后定义结构体成员，先定义结构体变量
+	NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;  //Px0-4  EXTI0到4_IRQn  Px5-9 EXTI9_5_IRQn  Px10-15  EXTI15_10_IRQn
+  NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; //抢占或主优先级，放主优先级位名，组1，一个优先级1位两种可能0到1都可以放主优先级，=0或=1都行
+  NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;       //子优先级,多个优先级先比较抢占优先级数字越小越优先，相同比较子优先级,子也同比较EXTI0_IRQn小越厉害
+  NVIC_InitStruct.NVIC_IRQChannelCmd =ENABLE;
+	
+	NVIC_Init(&NVIC_InitStruct);
+}
+
+
+void EXTI_Key_Config(void)
+{
+  //①先初始化要连接EXTI的输入GPIO
+	GPIO_InitTypeDef  GPIO_InitStruct;
+	EXTI_InitTypeDef  EXTI_InitStruct;
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	GPIO_InitStruct.GPIO_Pin=_GPIO_PIN;
+	GPIO_InitStruct.GPIO_Mode=GPIO_Mode_IN_FLOATING;
+	
+	GPIO_Init(_GPIO_PORT, &GPIO_InitStruct);                    //调用GPIO初始化函数，把IO口和结构体成员写进去
+  //③调用中断优先级函数
+	EXTI_NVIC_Config();
+	
+  //②初始化EXTI产生中断或者事件
+	GPIO_EXTILineConfig(_GPIO_EXTI_PORT_SOURCE, _GPIO_PIN_SOURCE);  //选择输入线  PA0
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);            //设置端口断点，需要打开时钟，EXTI在APB2上，打开AFIO时钟即可
+  
+	EXTI_InitStruct.EXTI_Line=_EXTI_LINE;                         //初始化EXTI结构体，先在{后定义结构体变量，然后依次查表定义
+	EXTI_InitStruct.EXTI_Mode=EXTI_Mode_Interrupt;
+	EXTI_InitStruct.EXTI_Trigger=EXTI_Trigger_Rising;
+	EXTI_InitStruct.EXTI_LineCmd=ENABLE;
+	
+	EXTI_Init(&EXTI_InitStruct);                               //调用EXTI初始化函数，把结构体成员写进去
+}
