@@ -1,0 +1,9 @@
+#include <stdio.h>
+int main()
+{
+   char c;
+   printf("请输入第一个字符:");
+   scanf("%c",&c);
+   printf("%c的ASCII为%d",c,c);//%c显示字符，%显示整数
+   return 0;
+}
